@@ -74,6 +74,11 @@ This single command will:
 │       └── utils/        # API client, auth
 └── docker-compose.yml    # Container orchestration
 ```
+## System Architecture
+![System Architecture](images/architecture.png)
+
+## Database Schema (ER Diagram)
+![Database ER Diagram](images/ERdatabase.png)
 
 ## 🛠️ Tech Stack
 
