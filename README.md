@@ -336,7 +336,7 @@ The frontend is being actively integrated and will include:
 
 ## Youtube vide link
 
-[click here](https://youtu.be/E_WFrt1hIAE)
+[click here](https://youtu.be/RcHNGf9N9eQ?si=BEanqzFY7_5CjPTP)
 
 ---
 
