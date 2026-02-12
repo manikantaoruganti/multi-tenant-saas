@@ -1,85 +1,126 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../utils/api.jsx";
-import ProjectForm from "../components/ProjectForm.jsx";
+import api from "../services/api";
+import Navbar from "../components/Navbar";
+import ProjectModal from "../components/ProjectModal";
+import "../styles/projects.css";
 
 export default function Projects() {
   const [projects, setProjects] = useState([]);
-  const [showForm, setShowForm] = useState(false);
+  const [filtered, setFiltered] = useState([]);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editProject, setEditProject] = useState(null);
   const navigate = useNavigate();
 
-  async function loadProjects() {
-    try {
-      const res = await api.get("/projects");
-      setProjects(res.data.data || []);
-    } catch (err) {
-      setError("Failed to load projects");
-    } finally {
-      setLoading(false);
-    }
-  }
+  const loadProjects = async () => {
+    setLoading(true);
+    const res = await api.get("/projects", {
+      params: status ? { status } : {},
+    });
+    const list = res.data.data.projects || [];
+    setProjects(list);
+    setFiltered(list);
+    setLoading(false);
+  };
 
   useEffect(() => {
     loadProjects();
-  }, []);
+  }, [status]);
 
-  function handleProjectCreated() {
-    setShowForm(false);
+  useEffect(() => {
+    const result = projects.filter((p) =>
+      p.name.toLowerCase().includes(search.toLowerCase())
+    );
+    setFiltered(result);
+  }, [search, projects]);
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Delete this project?")) return;
+    await api.delete(`/projects/${id}`);
     loadProjects();
-  }
-
-  if (loading) return <p>Loading projects...</p>;
-  if (error) return <p style={{ color: "red" }}>{error}</p>;
+  };
 
   return (
-    <div>
-      {/* Header */}
-      <div className="page-header">
-        <h1 className="page-title">Projects</h1>
-        <button
-          className="btn-primary"
-          onClick={() => setShowForm(true)}
-        >
-          + New Project
-        </button>
+    <>
+      <div className="page-wrapper">
+        <div className="page-header">
+          <h1>Projects</h1>
+          <button className="primary-btn" onClick={() => setModalOpen(true)}>
+            + New Project
+          </button>
+        </div>
+
+        {/* FILTERS */}
+        <div className="filters">
+          <input
+            placeholder="Search by name..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+
+          <select value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option value="">All Status</option>
+            <option value="active">Active</option>
+            <option value="archived">Archived</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+
+        {/* CONTENT */}
+        {loading ? (
+          <div className="page-loading">Loading projects...</div>
+        ) : filtered.length === 0 ? (
+          <div className="empty-state">No projects found</div>
+        ) : (
+          <div className="project-grid">
+            {filtered.map((p) => (
+              <div key={p.id} className="project-card">
+                <h3>{p.name}</h3>
+                <p>{p.description || "No description"}</p>
+
+                <div className="meta">
+                  <span className={`status ${p.status}`}>{p.status}</span>
+                  <span>{p.taskCount || 0} Tasks</span>
+                </div>
+
+                <div className="footer">
+                  <small>Created by {p.createdBy?.fullName || "—"}</small>
+                  <small>{new Date(p.createdAt).toLocaleDateString()}</small>
+                </div>
+
+                <div className="actions">
+                  <button onClick={() => navigate(`/projects/${p.id}`)}>
+                    View
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEditProject(p);
+                      setModalOpen(true);
+                    }}
+                  >
+                    Edit
+                  </button>
+                  <button className="danger" onClick={() => handleDelete(p.id)}>
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* MODAL */}
+        {modalOpen && (
+          <ProjectModal
+            project={editProject}
+            onClose={() => setModalOpen(false)}
+            onSaved={loadProjects}
+          />
+        )}
       </div>
-
-      {/* Create Form */}
-      {showForm && (
-        <ProjectForm
-          onCancel={() => setShowForm(false)}
-          onCreated={handleProjectCreated}
-        />
-      )}
-
-      {/* Project List */}
-      {projects.length === 0 ? (
-        <div className="card">
-          <p>No projects yet. Create your first project.</p>
-        </div>
-      ) : (
-        <div className="grid-2">
-          {projects.map((project) => (
-            <div
-              key={project.id}
-              className="card"
-              style={{ cursor: "pointer" }}
-              onClick={() =>
-                navigate(`/projects/${project.id}/tasks`)
-              }
-            >
-              <h3 style={{ marginBottom: "6px" }}>
-                {project.name}
-              </h3>
-              <p style={{ color: "#6b7280" }}>
-                {project.description || "No description"}
-              </p>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+    </>
   );
 }

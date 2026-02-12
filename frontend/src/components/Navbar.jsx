@@ -1,64 +1,99 @@
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { NavLink } from "react-router-dom";
-import { logout } from "../utils/auth.jsx";
+import { useAuth } from "../context/AuthContext";
+import "../styles/navbar.css";
 
 export default function Navbar() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  const role = user?.role;
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
   return (
-    <div className="app-layout">
-      {/* Sidebar */}
-      <aside
-        style={{
-          width: "220px",
-          background: "#111827",
-          color: "#f9fafb",
-          padding: "20px",
-          display: "flex",
-          flexDirection: "column"
-        }}
-      >
-        <h2 style={{ marginBottom: "30px", fontSize: "20px" }}>
-          Multi-SaaS
-        </h2>
+    <nav className="navbar">
+      {/* LEFT */}
+      <div className="navbar-left">
+        <span className="logo" onClick={() => navigate("/dashboard")}>
+          MultiTenant SaaS
+        </span>
+      </div>
 
-        <nav style={{ flex: 1 }}>
-          <NavItem to="/">Dashboard</NavItem>
-          <NavItem to="/projects">Projects</NavItem>
-          <NavItem to="/profile">Profile</NavItem>
-        </nav>
+      {/* HAMBURGER (MOBILE) */}
+      <div className="hamburger" onClick={() => setMenuOpen(!menuOpen)}>
+        ☰
+      </div>
 
-        <button
-          onClick={logout}
-          className="btn-danger"
-          style={{ marginTop: "20px" }}
-        >
-          Logout
-        </button>
-      </aside>
+      {/* NAV LINKS */}
+      <ul className={`nav-links ${menuOpen ? "open" : ""}`}>
+        <li>
+          <Link to="/dashboard" onClick={() => setMenuOpen(false)}>
+            Dashboard
+          </Link>
+        </li>
 
-      {/* Main content wrapper */}
-      <main className="main-content">
-        {/* Routed pages render here via App.jsx */}
-      </main>
-    </div>
-  );
-}
+        <li>
+          <Link to="/projects" onClick={() => setMenuOpen(false)}>
+            Projects
+          </Link>
+        </li>
 
-/* ---------------------------------- */
-/* Reusable Nav Item */
-/* ---------------------------------- */
-function NavItem({ to, children }) {
-  return (
-    <NavLink
-      to={to}
-      style={({ isActive }) => ({
-        display: "block",
-        padding: "10px 12px",
-        marginBottom: "6px",
-        borderRadius: "6px",
-        background: isActive ? "#2563eb" : "transparent",
-        color: isActive ? "#ffffff" : "#d1d5db"
-      })}
-    >
-      {children}
-    </NavLink>
+        {/* REAL TASKS PAGE */}
+        {(role === "tenant_admin" || role === "super_admin") && (
+          <li>
+            {/* <Link to="/tasks" onClick={() => setMenuOpen(false)}>
+              Tasks
+            </Link> */}
+            <NavLink
+              to="/tasks"
+              className={({ isActive }) => (isActive ? "active-link" : "")}
+            >
+              Tasks
+            </NavLink>
+          </li>
+        )}
+
+        {role === "tenant_admin" && (
+          <li>
+            <Link to="/users" onClick={() => setMenuOpen(false)}>
+              Users
+            </Link>
+          </li>
+        )}
+
+        {role === "super_admin" && (
+          <li>
+            <Link to="/tenants" onClick={() => setMenuOpen(false)}>
+              Tenants
+            </Link>
+          </li>
+        )}
+      </ul>
+
+      {/* USER DROPDOWN */}
+      <div className="user-menu" onClick={() => setDropdownOpen(!dropdownOpen)}>
+        <span className="user-name">
+          {user?.fullName} <small>({role})</small>
+        </span>
+
+        {dropdownOpen && (
+          <div className="dropdown">
+            <button onClick={() => navigate("/profile")}>Profile</button>
+            <button onClick={() => navigate("/settings")}>Settings</button>
+            <button className="logout" onClick={handleLogout}>
+              Logout
+            </button>
+          </div>
+        )}
+      </div>
+    </nav>
   );
 }

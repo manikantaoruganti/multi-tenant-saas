@@ -1,48 +1,119 @@
 import { useState } from "react";
-import api from "../utils/api.jsx";
-import { saveAuth } from "../utils/auth.jsx";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import AuthNavbar from "../components/AuthNavbar";
+import "../styles/auth.css";
 
 export default function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [subdomain, setSubdomain] = useState("");
-  const [error, setError] = useState("");
+  const { login } = useAuth();
   const navigate = useNavigate();
 
-  async function handleSubmit(e) {
+  const [form, setForm] = useState({
+    email: "",
+    password: "",
+    subdomain: "",
+    remember: false,
+  });
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setForm({ ...form, [name]: type === "checkbox" ? checked : value });
+  };
+
+  // FRONTEND-ONLY FIX (BACKEND SAFE)
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
     try {
-      const res = await api.post("/auth/login", {
-        email,
-        password,
-        tenantSubdomain: subdomain
+      setLoading(true);
+
+      // Transform payload to EXACT backend contract
+      await login({
+        email: form.email,
+        password: form.password,
+        tenantSubdomain: form.subdomain, // BACKEND EXPECTS THIS
       });
 
-      saveAuth(res.data.data.token, res.data.data.user);
       navigate("/dashboard");
-    } catch {
-      setError("Invalid credentials");
+    } catch (err) {
+      setError(err.response?.data?.message || "Invalid credentials");
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
   return (
-    <div className="card" style={{ maxWidth: "400px", margin: "auto" }}>
-      <h2>Login</h2>
+    <div className="auth-page">
+      <AuthNavbar />
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      <div className="auth-content">
+        {/* LEFT INFO */}
+        <div className="auth-info">
+          <h1>Manage projects with ease</h1>
+          <p>
+            A secure multi-tenant platform to manage projects, tasks, and teams
+            efficiently.
+          </p>
+        </div>
 
-      <form onSubmit={handleSubmit}>
-        <input placeholder="Tenant subdomain" onChange={e => setSubdomain(e.target.value)} />
-        <input placeholder="Email" onChange={e => setEmail(e.target.value)} />
-        <input type="password" placeholder="Password" onChange={e => setPassword(e.target.value)} />
+        {/* RIGHT CARD */}
+        <div className="auth-card">
+          <h2>Login</h2>
 
-        <button className="btn-primary" style={{ marginTop: "10px" }}>
-          Login
-        </button>
-      </form>
+          {error && <div className="error">{error}</div>}
+
+          <form onSubmit={handleSubmit}>
+            <input
+              type="email"
+              name="email"
+              placeholder="Email"
+              value={form.email}
+              onChange={handleChange}
+              required
+            />
+
+            <input
+              type="password"
+              name="password"
+              placeholder="Password"
+              value={form.password}
+              onChange={handleChange}
+              required
+            />
+
+            <input
+              name="subdomain"
+              placeholder="Tenant Subdomain"
+              value={form.subdomain}
+              onChange={handleChange}
+              required
+            />
+
+            <div className="auth-options">
+              <input
+                type="checkbox"
+                id="remember"
+                name="remember"
+                checked={form.remember}
+                onChange={handleChange}
+              />
+              <label htmlFor="remember">Remember me</label>
+            </div>
+
+            <button type="submit" disabled={loading}>
+              {loading ? "Logging in..." : "Login"}
+            </button>
+          </form>
+
+          <div className="auth-footer">
+            Don’t have an account? <Link to="/register">Register</Link>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
