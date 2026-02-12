@@ -1,20 +1,41 @@
-import { Router } from "express";
-import auth from "../middleware/auth.js";
-import tenantIsolation from "../middleware/tenant.js";
-import {
-  createTask,
-  listTasks,
-  updateTask,
-  deleteTask
-} from "../controllers/taskController.js";
+const express = require('express');
+const router = express.Router();
 
-const router = Router();
+const authMiddleware = require('../middleware/authMiddleware');
+const tenantIsolation = require('../middleware/tenantMiddleware');
+const taskController = require('../controllers/taskCtrl');
 
-router.use(auth, tenantIsolation);
+router.use(authMiddleware);
+router.use(tenantIsolation);
 
-router.post("/projects/:projectId/tasks", createTask);
-router.get("/projects/:projectId/tasks", listTasks);
-router.put("/tasks/:taskId", updateTask);
-router.delete("/tasks/:taskId", deleteTask);
+// Create task
+router.post(
+  '/projects/:projectId/tasks',
+  taskController.createTask
+);
 
-export default router;
+// List tasks for project
+router.get(
+  '/projects/:projectId/tasks',
+  taskController.listTasks
+);
+
+// Update task status only
+router.patch(
+  '/tasks/:taskId/status',
+  taskController.updateTaskStatus
+);
+
+// Update task (all fields)
+router.put(
+  '/tasks/:taskId',
+  taskController.updateTask
+);
+
+// Delete task
+router.delete(
+  '/tasks/:taskId',
+  taskController.deleteTask
+);
+
+module.exports = router;

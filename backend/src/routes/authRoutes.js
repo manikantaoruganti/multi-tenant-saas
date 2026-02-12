@@ -1,17 +1,17 @@
-import { Router } from "express";
-import {
-  registerTenant,
-  login,
-  me,
-  logout
-} from "../controllers/authController.js";
-import auth from "../middleware/auth.js";
+const express = require('express');
+const router = express.Router();
 
-const router = Router();
+const authMiddleware = require('../middleware/authMiddleware');
+const authController = require('../controllers/authCtrl');
 
-router.post("/register-tenant", registerTenant);
-router.post("/login", login);
-router.get("/me", auth, me);
-router.post("/logout", auth, logout);
+router.post('/register-tenant', authController.registerTenant);
+router.post('/login', authController.login);
+router.get('/me', authMiddleware, authController.getMe);
+router.post('/logout', authMiddleware, (req, res) => {
+  return res.status(200).json({
+    success: true,
+    message: 'Logged out successfully',
+  });
+});
 
-export default router;
+module.exports = router;

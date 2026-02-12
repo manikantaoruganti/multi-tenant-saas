@@ -1,22 +1,39 @@
-import { Router } from "express";
-import auth from "../middleware/auth.js";
-import tenantIsolation from "../middleware/tenant.js";
-import {
-  createProject,
-  listProjects,
-  getProject,
-  updateProject,
-  deleteProject
-} from "../controllers/projectController.js";
+const express = require('express');
+const router = express.Router();
 
-const router = Router();
+const authMiddleware = require('../middleware/authMiddleware');
+const tenantIsolation = require('../middleware/tenantMiddleware');
+const allowRoles = require('../middleware/rbacMiddleware');
+const projectController = require('../controllers/projectCtrl');
 
-router.use(auth, tenantIsolation);
+router.use(authMiddleware);
+router.use(tenantIsolation);
 
-router.post("/projects", createProject);
-router.get("/projects", listProjects);
-router.get("/projects/:projectId", getProject);
-router.put("/projects/:projectId", updateProject);
-router.delete("/projects/:projectId", deleteProject);
+// Create project
+router.post(
+  '/projects',
+  allowRoles('tenant_admin', 'user'),
+  projectController.createProject
+);
 
-export default router;
+// List projects
+router.get(
+  '/projects',
+  projectController.listProjects
+);
+
+// Update project
+router.put(
+  '/projects/:projectId',
+  allowRoles('tenant_admin', 'user'),
+  projectController.updateProject
+);
+
+// Delete project
+router.delete(
+  '/projects/:projectId',
+  allowRoles('tenant_admin', 'user'),
+  projectController.deleteProject
+);
+
+module.exports = router;

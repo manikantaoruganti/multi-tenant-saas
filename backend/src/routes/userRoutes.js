@@ -1,20 +1,38 @@
-import { Router } from "express";
-import auth from "../middleware/auth.js";
-import tenantIsolation from "../middleware/tenant.js";
-import {
-  createUser,
-  listUsers,
-  updateUser,
-  deleteUser
-} from "../controllers/userController.js";
+const express = require('express');
+const router = express.Router();
 
-const router = Router();
+const authMiddleware = require('../middleware/authMiddleware');
+const tenantIsolation = require('../middleware/tenantMiddleware');
+const allowRoles = require('../middleware/rbacMiddleware');
+const userController = require('../controllers/userCtrl');
 
-router.use(auth);
+router.use(authMiddleware);
+router.use(tenantIsolation);
 
-router.post("/tenants/:tenantId/users", tenantIsolation, createUser);
-router.get("/tenants/:tenantId/users", tenantIsolation, listUsers);
-router.put("/users/:userId", tenantIsolation, updateUser);
-router.delete("/users/:userId", tenantIsolation, deleteUser);
+// Add user (tenant_admin only)
+router.post(
+  '/tenants/:tenantId/users',
+  allowRoles('tenant_admin'),
+  userController.addUser
+);
 
-export default router;
+// List users (all tenant users)
+router.get(
+  '/tenants/:tenantId/users',
+  userController.listUsers
+);
+
+// Update user (self or tenant_admin)
+router.put(
+  '/users/:userId',
+  userController.updateUser
+);
+
+// Delete user (tenant_admin only)
+router.delete(
+  '/users/:userId',
+  allowRoles('tenant_admin'),
+  userController.deleteUser
+);
+
+module.exports = router;
